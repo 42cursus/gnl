@@ -109,6 +109,7 @@ fabric.properties
 
 ### CMake template
 CMakeLists.txt.user
+CMakeLists.txt
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
