@@ -10,4 +10,14 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+#ifndef GET_NEXT_LINE_H
+# define GET_NEXT_LINE_H
 
+# ifndef BUFFER_SIZE
+#  define BUFFER_SIZE 80
+# endif //BUFFER_SIZE
+#include <limits.h>
+#include <stddef.h>
+
+char	*get_next_line(int fd);
+#endif //GET_NEXT_LINE_H
