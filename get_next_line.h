@@ -21,10 +21,11 @@
 # include <stdio.h>
 # include <unistd.h>
 
-# define	__SLBF	0x0001		/* line buffered */
-# define	__SNBF	0x0002		/* unbuffered */
-# define	__SEOF	0x0020		/* found EOF */
-# define	__SERR	0x0040		/* found error */
+# define	OPTIMISTIC 80
+# define	LINE_BUF	0x0001		/* line buffered */
+# define	UN_BUF	0x0002		/* unbuffered */
+# define	FOUND_EOF	0x0020		/* found EOF */
+# define	FOUND_ERR	0x0040		/* found error */
 # define	__SMBF	0x0080		/* _buf is from malloc */
 # define	__SMOD	0x2000		/* true => fgetln modified _p text */
 
@@ -55,4 +56,10 @@ typedef struct s_io_file {
 }							t_fp;
 
 char	*get_next_line(int fd);
+char	*ft_strdup(char *src);
+void	*ft_memchr(const void *s, int c, size_t n);
+void	*ft_memcpy(void *dest, const void *src, size_t n);
+int		lbexpand(t_fp *fp, size_t newsize);
+void	*ft_reallocarray(void *ptr,
+						 size_t oldnmemb, size_t newnmemb, size_t size);
 #endif //GET_NEXT_LINE_H
