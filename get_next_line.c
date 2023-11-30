@@ -23,9 +23,9 @@ void	makebuf(t_fp *fp)
 		fp->ptr = fp->nbuf;
 		fp->sbf._base = fp->ptr;
 		fp->sbf._size = 1;
-		return;
+		return ;
 	}
-	fp->_flags |= __SMBF;
+	fp->_flags |= MBF;
 	fp->ptr = (unsigned char *)p;
 	fp->sbf._base = p;
 	fp->sbf._size = BUFFER_SIZE;
@@ -37,11 +37,13 @@ int	refill(t_fp *fp)
 		makebuf(fp);
 	fp->ptr = fp->sbf._base;
 	fp->_r = read(fp->_file, (char *)fp->ptr, fp->sbf._size);
-	fp->_flags &= ~__SMOD;	/* buffer contents are again pristine */
-	if (fp->_r <= 0) {
+	fp->_flags &= ~SMOD;
+	if (fp->_r <= 0)
+	{
 		if (fp->_r == 0)
 			fp->_flags |= FOUND_EOF;
-		else {
+		else
+		{
 			fp->_r = 0;
 			fp->_flags |= FOUND_ERR;
 		}
@@ -68,70 +70,36 @@ t_fp	*sfp(int fd)
 	return (fp);
 }
 
-char *ft_fgetln(t_fp *fp)
+char	*ft_fgetln(t_fp *fp)
 {
-	unsigned char	*p;
 	size_t			len;
 	size_t			offset;
 
 	if (fp->_r <= 0 && refill(fp))
 		return (NULL);
-
 	offset = 0;
 	len = fp->_r;
-	p = ft_memchr(fp->ptr, '\n', fp->_r);
-	if (p) {
-		len = ++p - fp->ptr;
-		fp->lbf._base = ft_reallocarray(
-				fp->lbf._base,
-				fp->lbf._size,
-				len + 1,
-				sizeof(char));
-		fp->lbf._size = len + 1;
-		ft_memcpy(fp->lbf._base, fp->ptr, len);
-		fp->lbf._base[len] = '\0';
-		fp->_r -= (int) (p - fp->ptr);
-		fp->ptr = p;
+	if (get_str(fp, len, offset))
 		return ((char *)fp->lbf._base);
-	}
-	while (fp->_r > 0) {
-		lbexpand(fp, len + OPTIMISTIC);
+	while (fp->_r > 0)
+	{
+		lbchange(fp, len + OPTIMISTIC, LINE_BUF);
 		(void)ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset);
-//		fp->lbf._base[len] = '\0';
 		offset = len;
-		if (refill(fp) && fp->_flags & FOUND_EOF)
-		{
-			fp->lbf._base = ft_reallocarray(
-					fp->lbf._base,
-					fp->lbf._size,
-					len + 2,
-					sizeof(char));
-			fp->lbf._size = len + 2;
-			break;
-		}
-		else if (fp->_flags & FOUND_ERR)
+		if (refill(fp) && (fp->_flags & FOUND_EOF)
+			&& lbchange(fp, len + 2, !LINE_BUF))
+			break ;
+		if (fp->_flags & FOUND_ERR)
 			return (NULL);
-		p = ft_memchr(fp->ptr, '\n', fp->_r);
-		if (p) {
-			len += ++p - fp->ptr;
-			fp->lbf._base = ft_reallocarray(
-					fp->lbf._base,
-					fp->lbf._size,
-					len + 2,
-					sizeof(char));
-			fp->lbf._size = len + 2;
-			ft_memcpy(fp->lbf._base + offset, fp->ptr, p - fp->ptr);
-			fp->_r -= (int) (p - fp->ptr);
-			fp->ptr = p;
-			break;
-		}
+		if (get_str(fp, len, offset))
+			return ((char *)fp->lbf._base);
 		len += fp->_r;
 	}
 	fp->lbf._base[len] = '\0';
 	return ((char *)fp->lbf._base);
 }
 
-char *get_next_line(int fd)
+char	*get_next_line(int fd)
 {
 	static t_fp	*fp = NULL;
 	char		*buf;

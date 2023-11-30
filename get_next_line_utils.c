@@ -12,7 +12,6 @@
 
 #include "get_next_line.h"
 
-
 /**
  * The ft_memchr() function scans the initial n bytes of the memory area
  * pointed to by s for the first instance of c. Both c and the  bytes  of
@@ -53,12 +52,14 @@ void	*ft_memcpy(void *dest, const void *src, size_t n)
 	return (save_pointer);
 }
 
-int	lbexpand(t_fp *fp, size_t newsize)
+int	lbchange(t_fp *fp, size_t newsize, int flag)
 {
-	if ((size_t)fp->lbf._size >= newsize)
+	if ((size_t)fp->lbf._size >= newsize && (flag & LINE_BUF))
+		return (0);
+	if ((size_t)fp->lbf._size <= newsize && (flag ^ LINE_BUF))
 		return (0);
 	fp->lbf._base = ft_reallocarray(fp->lbf._base, fp->lbf._size,
-									newsize, sizeof(char));
+			newsize, sizeof(char));
 	if (!fp->lbf._base)
 		return (-1);
 	fp->lbf._size = newsize;
@@ -66,14 +67,14 @@ int	lbexpand(t_fp *fp, size_t newsize)
 }
 
 void	*ft_reallocarray(void *ptr,
-						  size_t oldnmemb, size_t newnmemb, size_t size)
+						size_t oldnmemb, size_t newnmemb, size_t size)
 {
 	void	*new_ptr;
 	size_t	newsize;
 	size_t	oldsize;
 
 	if (!ptr)
-		return malloc(newnmemb * size);
+		return (malloc(newnmemb * size));
 	oldsize = oldnmemb * size;
 	newsize = newnmemb * size;
 	if ((oldsize / size) != oldsize
@@ -88,4 +89,20 @@ void	*ft_reallocarray(void *ptr,
 		ft_memcpy(new_ptr, ptr, newsize);
 	free(ptr);
 	return (new_ptr);
+}
+
+int	get_str(t_fp *fp, size_t len, size_t offset)
+{
+	unsigned char	*p;
+
+	p = ft_memchr(fp->ptr, '\n', fp->_r);
+	if (!p)
+		return (0);
+	len = ++p - fp->ptr;
+	lbchange(fp, len + 1, LINE_BUF);
+	(void)ft_memcpy(fp->lbf._base + offset, fp->ptr, len);
+	fp->lbf._base[offset + len] = '\0';
+	fp->_r -= (int)(p - fp->ptr);
+	fp->ptr = p;
+	return (1);
 }
