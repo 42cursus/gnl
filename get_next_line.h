@@ -22,7 +22,7 @@
 # include <unistd.h>
 
 # define OPTIMISTIC 80
-# define LINE_BUF	0x0001		/* line buffered */
+# define DO_SHRINK	0x0001		/* line buffered */
 # define UN_BUF	0x0002		/* unbuffered */
 # define FOUND_EOF	0x0020		/* found EOF */
 # define FOUND_ERR	0x0040		/* found error */

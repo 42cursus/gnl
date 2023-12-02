@@ -1,4 +1,11 @@
+# From https://stackoverflow.com/questions/15606955/:
+# If you want to list all the files currently being tracked:
+# `git ls-tree --full-tree --name-only -r HEAD`
+# If you want a list of files that ever existed (i.e. including deleted files):
+# `git log --pretty=format: --name-only --diff-filter=A | sort - | sed '/^$/d'`
 gnlTester/
+gnl-station-tester/
+fsoares/
 main
 ### C template
 # Prerequisites
@@ -168,5 +175,3 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-libftTester/
-libft-war-machine/

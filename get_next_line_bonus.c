@@ -12,7 +12,7 @@
 
 #include "get_next_line_bonus.h"
 
-void	makebuf(t_fp *fp)
+int	makebuf(t_fp *fp)
 {
 	void	*p;
 
@@ -20,21 +20,23 @@ void	makebuf(t_fp *fp)
 	if (!p)
 	{
 		fp->_flags |= UN_BUF;
-		fp->ptr = fp->nbuf;
+		fp->ptr = fp->nbuf[fp->_file];
 		fp->sbf._base = fp->ptr;
 		fp->sbf._size = 1;
-		return ;
+		fp->_flags |= FOUND_ERR;
+		return (-1);
 	}
 	fp->_flags |= MBF;
 	fp->ptr = (unsigned char *)p;
 	fp->sbf._base = p;
 	fp->sbf._size = BUFFER_SIZE;
+	return (0);
 }
 
 int	refill(t_fp *fp)
 {
-	if (fp->sbf._base == NULL)
-		makebuf(fp);
+	if (!fp->sbf._base && makebuf(fp))
+		return (EOF);
 	fp->ptr = fp->sbf._base;
 	fp->_r = read(fp->_file, (char *)fp->ptr, fp->sbf._size);
 	fp->_flags &= ~SMOD;
@@ -45,6 +47,12 @@ int	refill(t_fp *fp)
 		else
 		{
 			fp->_r = 0;
+			if (fp->_flags & MBF)
+			{
+				free(fp->sbf._base);
+				fp->sbf._base = NULL;
+				fp->sbf._size = 0;
+			}
 			fp->_flags |= FOUND_ERR;
 		}
 		return (EOF);
@@ -74,6 +82,8 @@ t_fp	*find_fp(int fd, t_fp	*all[])
 		fp->lbf._size = 0;
 		all[fd] = fp;
 	}
+	fp->lbf._base = NULL;
+	fp->lbf._size = 0;
 	return (fp);
 }
 
@@ -90,11 +100,11 @@ char	*ft_fgetln(t_fp *fp)
 		return ((char *)fp->lbf._base);
 	while (fp->_r > 0)
 	{
-		lbchange(fp, len + OPTIMISTIC, LINE_BUF);
+		lbchange(fp, len + OPTIMISTIC, 1);
 		(void)ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset);
 		offset = len;
 		if (refill(fp) && (fp->_flags & FOUND_EOF)
-			&& lbchange(fp, len + 2, !LINE_BUF))
+			&& lbchange(fp, len + 1, 0))
 			break ;
 		if (fp->_flags & FOUND_ERR)
 			return (NULL);
@@ -108,25 +118,28 @@ char	*ft_fgetln(t_fp *fp)
 
 char	*get_next_line(int fd)
 {
+	t_fp		*fp;
+	char		*buf;
 	static t_fp	*all[MY_OPEN_MAX] = {NULL};
-	t_fp	*fp;
-	char	*buf;
 
 	if (fd < 0 || fd > SHRT_MAX || fd > MY_OPEN_MAX)
 		return (NULL);
 	fp = find_fp(fd, all);
 	if (!fp)
 		return (NULL);
-	fp->lbf._base = NULL;
-	fp->lbf._size = 0;
 	buf = ft_fgetln(fp);
 	if (!buf)
 	{
-		free(fp->sbf._base);
-		fp->sbf._base = NULL;
-		fp->sbf._size = 0;
+		if (fp->_flags & MBF)
+		{
+			free(fp->sbf._base);
+			fp->sbf._base = NULL;
+			fp->sbf._size = 0;
+		}
+		free(fp->lbf._base);
+		fp->lbf._base = NULL;
+		fp->lbf._size = 0;
 		free(fp);
-		fp = NULL;
 		all[fd] = NULL;
 	}
 	return (buf);

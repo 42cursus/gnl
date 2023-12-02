@@ -12,7 +12,7 @@
 
 #include "get_next_line.h"
 
-void	makebuf(t_fp *fp)
+int	makebuf(t_fp *fp)
 {
 	void	*p;
 
@@ -23,18 +23,20 @@ void	makebuf(t_fp *fp)
 		fp->ptr = fp->nbuf;
 		fp->sbf._base = fp->ptr;
 		fp->sbf._size = 1;
-		return ;
+		fp->_flags |= FOUND_ERR;
+		return (-1);
 	}
 	fp->_flags |= MBF;
 	fp->ptr = (unsigned char *)p;
 	fp->sbf._base = p;
 	fp->sbf._size = BUFFER_SIZE;
+	return (0);
 }
 
 int	refill(t_fp *fp)
 {
-	if (fp->sbf._base == NULL)
-		makebuf(fp);
+	if (!fp->sbf._base && makebuf(fp))
+		return (EOF);
 	fp->ptr = fp->sbf._base;
 	fp->_r = read(fp->_file, (char *)fp->ptr, fp->sbf._size);
 	fp->_flags &= ~SMOD;
@@ -45,6 +47,12 @@ int	refill(t_fp *fp)
 		else
 		{
 			fp->_r = 0;
+			if (fp->_flags & MBF)
+			{
+				free(fp->lbf._base);
+				fp->lbf._base = NULL;
+				fp->lbf._size = 0;
+			}
 			fp->_flags |= FOUND_ERR;
 		}
 		return (EOF);
@@ -83,11 +91,11 @@ char	*ft_fgetln(t_fp *fp)
 		return ((char *)fp->lbf._base);
 	while (fp->_r > 0)
 	{
-		lbchange(fp, len + OPTIMISTIC, LINE_BUF);
+		lbchange(fp, len + OPTIMISTIC, !DO_SHRINK);
 		(void)ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset);
 		offset = len;
 		if (refill(fp) && (fp->_flags & FOUND_EOF)
-			&& lbchange(fp, len + 2, !LINE_BUF))
+			&& lbchange(fp, len + 1, DO_SHRINK))
 			break ;
 		if (fp->_flags & FOUND_ERR)
 			return (NULL);
@@ -113,9 +121,15 @@ char	*get_next_line(int fd)
 	buf = ft_fgetln(fp);
 	if (!buf)
 	{
-		free(fp->sbf._base);
-		fp->sbf._base = NULL;
-		fp->sbf._size = 0;
+		if (fp->_flags & MBF)
+		{
+			free(fp->sbf._base);
+			fp->sbf._base = NULL;
+			fp->sbf._size = 0;
+		}
+		free(fp->lbf._base);
+		fp->lbf._base = NULL;
+		fp->lbf._size = 0;
 		free(fp);
 		fp = NULL;
 	}
