@@ -105,12 +105,11 @@ char	*ft_fgetln(t_fp *fp)
 		return ((char *)fp->lbf._base);
 	while (fp->_r > 0)
 	{
-		if (lbchange(fp, len + OPTIMISTIC, !DO_SHRINK))
+		if ((lbchange(fp, len + OPTIMISTIC, !DO_SHRINK)
+				|| ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset))
+			&& (refill(fp) && (fp->_flags & FOUND_ERR)))
 			return (NULL);
-		(void )ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset);
 		offset = len;
-		if (refill(fp) && (fp->_flags & FOUND_ERR))
-			return (NULL);
 		if (fp->_flags & FOUND_EOF)
 			break ;
 		if (get_str(fp, len, offset))
@@ -119,7 +118,6 @@ char	*ft_fgetln(t_fp *fp)
 	}
 	if (lbchange(fp, len + 1, DO_SHRINK))
 		return (NULL);
-	fp->lbf._base[len] = '\0';
 	return ((char *)fp->lbf._base);
 }
 

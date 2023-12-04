@@ -55,9 +55,18 @@ void	*ft_memcpy(void *dest, const void *src, size_t n)
 int	lbchange(t_fp *fp, size_t newsize, int flag)
 {
 	unsigned char	*ptr;
+	size_t			diff;
 
 	if ((newsize <= (size_t)fp->lbf._size) && !flag)
 		return (0);
+	else if (!flag)
+	{
+		diff = newsize - (size_t) fp->lbf._size;
+		if (diff > OPTIMISTIC)
+			newsize = (size_t)fp->lbf._size + (diff * 3);
+		else
+			newsize += OPTIMISTIC;
+	}
 	ptr = (unsigned char *)ft_reallocarray(fp->lbf._base,
 			fp->lbf._size, newsize, sizeof(char));
 	if (!ptr)
