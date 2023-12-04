@@ -87,6 +87,16 @@ t_fp	*find_fp(int fd, t_fp	*all[])
 	return (fp);
 }
 
+/**
+ * We have to copy the current buffered data to the line buffer making sure
+ * there is room for more bytes. Copy data from string buffer to line buffer,
+ * refill file and look for newline.
+ * The loop stops only when we find a newline or EOF.
+ *
+ * OPTIMISTIC is length that we (optimistically) expect will
+ * accommodate the `rest' of the string, on each trip through the
+ * loop below.
+ */
 char	*ft_fgetln(t_fp *fp)
 {
 	size_t			len;
@@ -100,19 +110,19 @@ char	*ft_fgetln(t_fp *fp)
 		return ((char *)fp->lbf._base);
 	while (fp->_r > 0)
 	{
-		lbchange(fp, len + OPTIMISTIC, 1);
-		(void)ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset);
-		offset = len;
-		if (refill(fp) && (fp->_flags & FOUND_EOF)
-			&& lbchange(fp, len + 1, 0))
-			break ;
-		if (fp->_flags & FOUND_ERR)
+		if ((lbchange(fp, len + OPTIMISTIC, !DO_SHRINK)
+				|| ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset))
+			&& (refill(fp) && (fp->_flags & FOUND_ERR)))
 			return (NULL);
+		offset = len;
+		if (fp->_flags & FOUND_EOF)
+			break ;
 		if (get_str(fp, len, offset))
 			return ((char *)fp->lbf._base);
 		len += fp->_r;
 	}
-	fp->lbf._base[len] = '\0';
+	if (lbchange(fp, len + 1, DO_SHRINK))
+		return (NULL);
 	return ((char *)fp->lbf._base);
 }
 

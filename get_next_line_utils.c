@@ -45,7 +45,7 @@ void	*ft_memcpy(void *dest, const void *src, size_t n)
 	char *const			save_pointer = dest;
 	const unsigned char	*s = src;
 
-	if (!src && !dest)
+	if (!src || !dest)
 		return (NULL);
 	while (n-- > 0)
 		*(unsigned char *)dest++ = *s++;
@@ -54,16 +54,19 @@ void	*ft_memcpy(void *dest, const void *src, size_t n)
 
 int	lbchange(t_fp *fp, size_t newsize, int flag)
 {
+	unsigned char	*ptr;
+
 	if ((newsize <= (size_t)fp->lbf._size) && !flag)
 		return (0);
-	fp->lbf._base = ft_reallocarray(fp->lbf._base, fp->lbf._size,
-			newsize, sizeof(char));
-	if (!fp->lbf._base)
+	ptr = (unsigned char *)ft_reallocarray(fp->lbf._base,
+			fp->lbf._size, newsize, sizeof(char));
+	if (!ptr)
 	{
-		free(fp->lbf._base);
+		fp->lbf._base = NULL;
 		fp->lbf._size = 0;
 		return (-1);
 	}
+	fp->lbf._base = ptr;
 	fp->lbf._size = newsize;
 	return (0);
 }
@@ -82,12 +85,14 @@ void	*ft_reallocarray(void *ptr,
 			return (NULL);
 		return (ptr);
 	}
-	if ((oldsize / size) != oldsize
-		|| ((newsize / size) != newsize))
+	if ((oldsize / size) != oldsize || ((newsize / size) != newsize))
 		return (NULL);
 	new_ptr = malloc(newsize);
 	if (!new_ptr)
+	{
+		free(ptr);
 		return (NULL);
+	}
 	if (newsize > oldsize)
 		ft_memcpy(new_ptr, ptr, oldsize);
 	else
@@ -104,7 +109,8 @@ int	get_str(t_fp *fp, size_t len, size_t offset)
 	if (!p)
 		return (0);
 	len = ++p - fp->ptr;
-	lbchange(fp, offset + len + 1, DO_SHRINK);
+	if (lbchange(fp, offset + len + 1, DO_SHRINK))
+		return (-1);
 	(void)ft_memcpy(fp->lbf._base + offset, fp->ptr, len);
 	fp->lbf._base[offset + len] = '\0';
 	fp->_r -= (int)(p - fp->ptr);

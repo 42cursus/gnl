@@ -60,24 +60,38 @@ int	refill(t_fp *fp)
 	return (0);
 }
 
-t_fp	*sfp(int fd)
+t_fp	*sfp(int fd, t_fp *ptr)
 {
 	t_fp	*fp;
 
-	fp = (t_fp *)malloc(sizeof(t_fp) * 1);
-	if (!fp)
-		return (NULL);
-	fp->ptr = NULL;
-	fp->_file = fd;
-	fp->_flags = 1;
-	fp->_r = 0;
-	fp->sbf._base = NULL;
-	fp->sbf._size = 0;
-	fp->lbf._base = NULL;
-	fp->lbf._size = 0;
-	return (fp);
+	if (!ptr)
+	{
+		fp = (t_fp *) malloc(sizeof(t_fp) * 1);
+		if (!fp)
+			return (NULL);
+		fp->ptr = NULL;
+		fp->_file = fd;
+		fp->_flags = 1;
+		fp->_r = 0;
+		fp->sbf._base = NULL;
+		fp->sbf._size = 0;
+		ptr = fp;
+	}
+	ptr->lbf._base = NULL;
+	ptr->lbf._size = 0;
+	return (ptr);
 }
 
+/**
+ * We have to copy the current buffered data to the line buffer making sure
+ * there is room for more bytes. Copy data from string buffer to line buffer,
+ * refill file and look for newline.
+ * The loop stops only when we find a newline or EOF.
+ *
+ * OPTIMISTIC is length that we (optimistically) expect will
+ * accommodate the `rest' of the string, on each trip through the
+ * loop below.
+ */
 char	*ft_fgetln(t_fp *fp)
 {
 	size_t			len;
@@ -91,33 +105,34 @@ char	*ft_fgetln(t_fp *fp)
 		return ((char *)fp->lbf._base);
 	while (fp->_r > 0)
 	{
-		lbchange(fp, len + OPTIMISTIC, !DO_SHRINK);
-		(void)ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset);
-		offset = len;
-		if (refill(fp) && (fp->_flags & FOUND_EOF)
-			&& lbchange(fp, len + 1, DO_SHRINK))
-			break ;
-		if (fp->_flags & FOUND_ERR)
+		if (lbchange(fp, len + OPTIMISTIC, !DO_SHRINK))
 			return (NULL);
+		(void )ft_memcpy(fp->lbf._base + offset, fp->ptr, len - offset);
+		offset = len;
+		if (refill(fp) && (fp->_flags & FOUND_ERR))
+			return (NULL);
+		if (fp->_flags & FOUND_EOF)
+			break ;
 		if (get_str(fp, len, offset))
 			return ((char *)fp->lbf._base);
 		len += fp->_r;
 	}
+	if (lbchange(fp, len + 1, DO_SHRINK))
+		return (NULL);
 	fp->lbf._base[len] = '\0';
 	return ((char *)fp->lbf._base);
 }
 
 char	*get_next_line(int fd)
 {
-	static t_fp	*fp = NULL;
 	char		*buf;
+	static t_fp	*fp = NULL;
 
 	if (fd < 0 || fd > SHRT_MAX)
 		return (NULL);
+	fp = sfp(fd, fp);
 	if (!fp)
-		fp = sfp(fd);
-	fp->lbf._base = NULL;
-	fp->lbf._size = 0;
+		return (NULL);
 	buf = ft_fgetln(fp);
 	if (!buf)
 	{
